@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Arnould — Calcul Surface</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --noir: #0e0e0e;
+    --jaune: #f5c842;
+    --jaune-pale: #fdf3c0;
+    --gris: #2a2a2a;
+    --gris-clair: #3d3d3d;
+    --texte: #f0ede6;
+    --texte-dim: #888;
+    --rouge: #e85544;
+    --vert: #4caf80;
+    --bleu: #4a9eff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--noir);
+    color: var(--texte);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 80px;
+  }
+
+  header {
+    background: var(--jaune);
+    padding: 18px 20px 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  header .logo { font-size: 22px; font-weight: 800; color: var(--noir); letter-spacing: -0.5px; }
+  header .sub { font-size: 11px; font-weight: 400; color: #555; font-family: 'DM Mono', monospace; letter-spacing: 0.5px; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: var(--gris);
+    border-bottom: 2px solid #1a1a1a;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--texte-dim);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .tab.active { color: var(--jaune); border-bottom-color: var(--jaune); }
+  .tab .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+
+  .panel { display: none; padding: 20px; }
+  .panel.active { display: block; }
+
+  /* SHAPE PREVIEW */
+  .shape-preview {
+    background: var(--gris);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .shape-preview svg { flex-shrink: 0; }
+  .shape-preview .shape-desc { font-size: 12px; color: var(--texte-dim); line-height: 1.6; font-family: 'DM Mono', monospace; }
+
+  /* FORM */
+  .field-group { margin-bottom: 16px; }
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--texte-dim);
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  label span { color: var(--jaune); font-weight: 400; }
+
+  input[type="number"], select {
+    width: 100%;
+    background: var(--gris);
+    border: 1.5px solid var(--gris-clair);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 20px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: var(--texte);
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  select { font-size: 15px; }
+  input[type="number"]:focus, select:focus { border-color: var(--jaune); }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .btn-calc {
+    width: 100%;
+    background: var(--jaune);
+    color: var(--noir);
+    border: none;
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    letter-spacing: 0.3px;
+    transition: transform 0.1s;
+    -webkit-appearance: none;
+  }
+  .btn-calc:active { transform: scale(0.98); }
+
+  .btn-sec {
+    width: 100%;
+    background: var(--gris);
+    color: var(--texte);
+    border: 1.5px solid var(--gris-clair);
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    -webkit-appearance: none;
+  }
+
+  /* RESULT */
+  .result-box {
+    background: var(--gris);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  .result-box.show { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result-surface {
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--jaune);
+    line-height: 1;
+    font-family: 'DM Mono', monospace;
+  }
+  .result-surface span { font-size: 22px; font-weight: 400; }
+  .result-label {
+    font-size: 11px;
+    color: var(--texte-dim);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+  .result-formula {
+    font-size: 12px;
+    color: var(--texte-dim);
+    font-family: 'DM Mono', monospace;
+    padding: 10px 12px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .result-formula span { color: var(--jaune); }
+
+  .btn-add {
+    width: 100%;
+    background: transparent;
+    border: 1.5px dashed var(--gris-clair);
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--texte-dim);
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+    -webkit-appearance: none;
+  }
+  .btn-add:hover { border-color: var(--jaune); color: var(--jaune); }
+
+  /* CUMUL */
+  .cumul-box {
+    background: linear-gradient(135deg, var(--gris) 0%, #222 100%);
+    border: 1.5px solid var(--jaune);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .cumul-box.show { display: block; }
+  .cumul-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--texte-dim); margin-bottom: 6px; }
+  .cumul-total { font-size: 36px; font-weight: 800; color: var(--jaune); font-family: 'DM Mono', monospace; }
+  .cumul-total span { font-size: 16px; font-weight: 400; }
+  .cumul-detail { font-size: 12px; color: var(--texte-dim); margin-top: 6px; font-family: 'DM Mono', monospace; line-height: 1.7; }
+
+  /* ZONES MULTI */
+  .zone-list { margin-bottom: 16px; }
+  .zone-item {
+    background: var(--gris);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeUp 0.2s ease;
+  }
+  .zone-item .z-info { flex: 1; }
+  .zone-item .z-name { font-size: 13px; font-weight: 700; }
+  .zone-item .z-type { font-size: 11px; color: var(--texte-dim); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .zone-item .z-val { font-family: 'DM Mono', monospace; color: var(--jaune); font-size: 14px; font-weight: 700; margin-right: 10px; }
+  .zone-item .z-val.neg { color: var(--rouge); }
+  .zone-item .z-del { background: none; border: none; color: var(--rouge); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+
+  .error-msg { color: var(--rouge); font-size: 13px; font-family: 'DM Mono', monospace; margin-top: 8px; display: none; }
+  .error-msg.show { display: block; }
+
+  /* CHANTIER NAME */
+  .chantier-input {
+    width: 100%;
+    background: var(--gris);
+    border: 1.5px solid var(--gris-clair);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Syne', sans-serif;
+    color: var(--texte);
+    outline: none;
+    margin-bottom: 16px;
+    -webkit-appearance: none;
+  }
+  .chantier-input:focus { border-color: var(--jaune); }
+
+  .copy-btn {
+    width: 100%;
+    background: var(--gris);
+    color: var(--texte);
+    border: 1.5px solid var(--gris-clair);
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    margin-top: 4px;
+    -webkit-appearance: none;
+  }
+  .copy-confirm { font-size: 12px; color: var(--vert); font-family: 'DM Mono', monospace; margin-top: 6px; display: none; text-align: center; }
+  .copy-confirm.show { display: block; }
+
+  /* TOGGLE NEG */
+  .neg-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .neg-toggle input { width: 16px; height: 16px; accent-color: var(--rouge); cursor: pointer; }
+  .neg-toggle label { font-size: 12px; color: var(--texte-dim); cursor: pointer; font-family: 'DM Mono', monospace; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ARNOULD</div>
+  <div class="sub">CALCUL SURFACE</div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('trap')">
+    <span class="icon">⬡</span>TRAPÈZE
+  </div>
+  <div class="tab" onclick="switchTab('heron')">
+    <span class="icon">△</span>HÉRON
+  </div>
+  <div class="tab" onclick="switchTab('cercle')">
+    <span class="icon">○</span>CERCLE
+  </div>
+  <div class="tab" onclick="switchTab('multi')">
+    <span class="icon">⊞</span>CUMUL
+  </div>
+</div>
+
+<!-- TRAPÈZE -->
+<div id="panel-trap" class="panel active">
+  <div class="shape-preview">
+    <svg width="80" height="60" viewBox="0 0 80 60">
+      <polygon points="15,50 65,50 55,10 25,10" fill="rgba(245,200,66,0.15)" stroke="#f5c842" stroke-width="2"/>
+      <text x="40" y="35" fill="#888" font-size="9" text-anchor="middle" font-family="monospace">h</text>
+      <line x1="40" y1="12" x2="40" y2="48" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="40" y="57" fill="#f5c842" font-size="9" text-anchor="middle" font-family="monospace">B</text>
+      <text x="40" y="8" fill="#f5c842" font-size="9" text-anchor="middle" font-family="monospace">b</text>
+    </svg>
+    <div class="shape-desc">
+      Aire = (B + b) / 2 × h<br>
+      B = grande base<br>
+      b = petite base<br>
+      h = hauteur perpendiculaire
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="field-group">
+      <label>Grande base B <span>(m)</span></label>
+      <input type="number" id="trap-B" placeholder="0" step="0.01" min="0" inputmode="decimal" oninput="calcTrap()">
+    </div>
+    <div class="field-group">
+      <label>Petite base b <span>(m)</span></label>
+      <input type="number" id="trap-b" placeholder="0" step="0.01" min="0" inputmode="decimal" oninput="calcTrap()">
+    </div>
+  </div>
+  <div class="field-group">
+    <label>Hauteur h <span>(m)</span></label>
+    <input type="number" id="trap-h" placeholder="0" step="0.01" min="0" inputmode="decimal" oninput="calcTrap()">
+  </div>
+
+  <div id="res-trap" class="result-box">
+    <div class="result-surface" id="trap-val">0<span> m²</span></div>
+    <div class="result-label">Surface du trapèze</div>
+    <div class="result-formula" id="trap-formula">(<span id="tf-B">B</span> + <span id="tf-b">b</span>) / 2 × <span id="tf-h">h</span> = <span id="tf-res">—</span></div>
+    <button class="btn-add" onclick="addToMulti('trap')">+ Ajouter au cumul</button>
+  </div>
+</div>
+
+<!-- HÉRON -->
+<div id="panel-heron" class="panel">
+  <div class="shape-preview">
+    <svg width="80" height="65" viewBox="0 0 80 65">
+      <polygon points="10,55 70,55 40,10" fill="rgba(245,200,66,0.15)" stroke="#f5c842" stroke-width="2"/>
+      <text x="40" y="62" fill="#f5c842" font-size="9" text-anchor="middle" font-family="monospace">c</text>
+      <text x="18" y="32" fill="#f5c842" font-size="9" text-anchor="middle" font-family="monospace">b</text>
+      <text x="63" y="32" fill="#f5c842" font-size="9" text-anchor="middle" font-family="monospace">a</text>
+    </svg>
+    <div class="shape-desc">
+      s = (a + b + c) / 2<br>
+      Aire = √(s(s-a)(s-b)(s-c))<br><br>
+      Mesure les 3 côtés<br>sur le terrain
+    </div>
+  </div>
+
+  <div class="row-3">
+    <div class="field-group">
+      <label>Côté a <span>(m)</span></label>
+      <input type="number" id="h-a" placeholder="0" step="0.01" min="0" inputmode="decimal" oninput="calcHeron()">
+    </div>
+    <div class="field-group">
+      <label>Côté b <span>(m)</span></label>
+      <input type="number" id="h-b" placeholder="0" step="0.01" min="0" inputmode="decimal" oninput="calcHeron()">
+    </div>
+    <div class="field-group">
+      <label>Côté c <span>(m)</span></label>
+      <input type="number" id="h-c" placeholder="0" step="0.01" min="0" inputmode="decimal" oninput="calcHeron()">
+    </div>
+  </div>
+
+  <div id="err-heron" class="error-msg">⚠ Ces 3 côtés ne forment pas un triangle valide</div>
+
+  <div id="res-heron" class="result-box">
+    <div class="result-surface" id="heron-val">0<span> m²</span></div>
+    <div class="result-label">Surface du triangle</div>
+    <div class="result-formula" id="heron-formula">s = <span id="hf-s">—</span> · Aire = √(s·(s-a)·(s-b)·(s-c)) = <span id="hf-res">—</span></div>
+    <button class="btn-add" onclick="addToMulti('heron')">+ Ajouter au cumul</button>
+  </div>
+</div>
+
+<!-- CERCLE -->
+<div id="panel-cercle" class="panel">
+  <div class="shape-preview">
+    <svg width="80" height="65" viewBox="0 0 80 65">
+      <circle cx="40" cy="35" r="25" fill="rgba(245,200,66,0.15)" stroke="#f5c842" stroke-width="2"/>
+      <line x1="40" y1="35" x2="65" y2="35" stroke="#888" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="53" y="30" fill="#f5c842" font-size="9" text-anchor="middle" font-family="monospace">r</text>
+    </svg>
+    <div class="shape-desc">
+      Cercle : π × r²<br>
+      Demi-cercle : π × r² / 2<br>
+      Quart : π × r² / 4<br><br>
+      r = rayon en mètres
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label>Rayon r <span>(m)</span></label>
+    <input type="number" id="c-r" placeholder="0" step="0.01" min="0" inputmode="decimal" oninput="calcCercle()">
+  </div>
+  <div class="field-group">
+    <label>Type</label>
+    <select id="c-type" onchange="calcCercle()">
+      <option value="full">Cercle entier</option>
+      <option value="half">Demi-cercle</option>
+      <option value="quarter">Quart de cercle</option>
+    </select>
+  </div>
+
+  <div id="res-cercle" class="result-box">
+    <div class="result-surface" id="cercle-val">0<span> m²</span></div>
+    <div class="result-label" id="cercle-label">Surface du cercle</div>
+    <div class="result-formula" id="cercle-formula">π × r² = <span id="cf-res">—</span></div>
+    <button class="btn-add" onclick="addToMulti('cercle')">+ Ajouter au cumul</button>
+  </div>
+</div>
+
+<!-- CUMUL MULTI-ZONES -->
+<div id="panel-multi" class="panel">
+  <input class="chantier-input" id="chantier-nom" placeholder="Nom du chantier (ex: Dupont — Allée)" />
+
+  <div class="cumul-box show" id="cumul-box">
+    <div class="cumul-title">Total cumulé</div>
+    <div class="cumul-total" id="cumul-val">0<span> m²</span></div>
+    <div class="cumul-detail" id="cumul-detail"></div>
+  </div>
+
+  <div class="zone-list" id="zone-list">
+    <div style="text-align:center;color:var(--texte-dim);font-size:13px;padding:2rem 0;font-family:'DM Mono',monospace;">
+      Ajoute des surfaces depuis les onglets ↑
+    </div>
+  </div>
+
+  <button class="copy-btn" onclick="copyRecap()">📋 Copier le récapitulatif</button>
+  <div class="copy-confirm" id="copy-confirm">✓ Copié — colle dans tes notes !</div>
+  <button class="btn-sec" onclick="clearMulti()" style="margin-top:8px;color:var(--rouge);">🗑 Tout effacer</button>
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────
+let zones = [];
+let zoneCounter = 0;
+const STORAGE = 'arnould_calc_v3';
+
+// ─── TABS ─────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const tabs = ['trap','heron','cercle','multi'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+}
+
+// ─── TRAPÈZE ──────────────────────────────────────────────
+function calcTrap() {
+  const B = +document.getElementById('trap-B').value || 0;
+  const b = +document.getElementById('trap-b').value || 0;
+  const h = +document.getElementById('trap-h').value || 0;
+  if (!B && !b && !h) return;
+  const area = ((B + b) / 2) * h;
+  document.getElementById('trap-val').innerHTML = area.toFixed(2) + '<span> m²</span>';
+  document.getElementById('tf-B').textContent = B;
+  document.getElementById('tf-b').textContent = b;
+  document.getElementById('tf-h').textContent = h;
+  document.getElementById('tf-res').textContent = area.toFixed(2) + ' m²';
+  document.getElementById('res-trap').classList.add('show');
+  save();
+}
+
+// ─── HÉRON ────────────────────────────────────────────────
+function calcHeron() {
+  const a = +document.getElementById('h-a').value || 0;
+  const b = +document.getElementById('h-b').value || 0;
+  const c = +document.getElementById('h-c').value || 0;
+  const err = document.getElementById('err-heron');
+  const res = document.getElementById('res-heron');
+  if (!a && !b && !c) return;
+  if (a + b <= c || a + c <= b || b + c <= a) {
+    err.classList.add('show');
+    res.classList.remove('show');
+    return;
+  }
+  err.classList.remove('show');
+  const s = (a + b + c) / 2;
+  const area = Math.sqrt(s * (s-a) * (s-b) * (s-c));
+  document.getElementById('heron-val').innerHTML = area.toFixed(2) + '<span> m²</span>';
+  document.getElementById('hf-s').textContent = s.toFixed(2);
+  document.getElementById('hf-res').textContent = area.toFixed(2) + ' m²';
+  res.classList.add('show');
+  save();
+}
+
+// ─── CERCLE ───────────────────────────────────────────────
+function calcCercle() {
+  const r = +document.getElementById('c-r').value || 0;
+  const type = document.getElementById('c-type').value;
+  if (!r) return;
+  const full = Math.PI * r * r;
+  let area = full;
+  let label = 'Surface du cercle';
+  let formula = `π × ${r}² = `;
+  if (type === 'half')    { area = full / 2; label = 'Surface du demi-cercle'; formula = `π × ${r}² / 2 = `; }
+  if (type === 'quarter') { area = full / 4; label = 'Surface du quart de cercle'; formula = `π × ${r}² / 4 = `; }
+  document.getElementById('cercle-val').innerHTML = area.toFixed(2) + '<span> m²</span>';
+  document.getElementById('cercle-label').textContent = label;
+  document.getElementById('cercle-formula').innerHTML = formula + '<span id="cf-res">' + area.toFixed(2) + ' m²</span>';
+  document.getElementById('res-cercle').classList.add('show');
+  save();
+}
+
+// ─── MULTI ────────────────────────────────────────────────
+function getCurrentArea(tab) {
+  if (tab === 'trap') {
+    const B = +document.getElementById('trap-B').value||0;
+    const b = +document.getElementById('trap-b').value||0;
+    const h = +document.getElementById('trap-h').value||0;
+    return { area: ((B+b)/2)*h, desc: `Trap. B=${B}m b=${b}m h=${h}m` };
+  }
+  if (tab === 'heron') {
+    const a = +document.getElementById('h-a').value||0;
+    const b = +document.getElementById('h-b').value||0;
+    const c = +document.getElementById('h-c').value||0;
+    const s = (a+b+c)/2;
+    const area = Math.sqrt(s*(s-a)*(s-b)*(s-c));
+    return { area, desc: `Tri. a=${a}m b=${b}m c=${c}m` };
+  }
+  if (tab === 'cercle') {
+    const r = +document.getElementById('c-r').value||0;
+    const type = document.getElementById('c-type').value;
+    const full = Math.PI*r*r;
+    const area = type==='half' ? full/2 : type==='quarter' ? full/4 : full;
+    const t = type==='half'?'Demi-cercle':type==='quarter'?'Quart cercle':'Cercle';
+    return { area, desc: `${t} r=${r}m` };
+  }
+  return { area: 0, desc: '' };
+}
+
+function addToMulti(tab) {
+  const { area, desc } = getCurrentArea(tab);
+  if (!area || isNaN(area)) return;
+  const id = ++zoneCounter;
+  const name = prompt('Nom de cette zone :', desc) || desc;
+  zones.push({ id, area: Math.round(area*100)/100, name, negative: false });
+  switchTab('multi');
+  renderZones();
+  save();
+}
+
+function toggleNeg(id) {
+  const z = zones.find(z => z.id === id);
+  if (z) z.negative = !z.negative;
+  renderZones(); save();
+}
+
+function removeZone(id) {
+  zones = zones.filter(z => z.id !== id);
+  renderZones(); save();
+}
+
+function renderZones() {
+  const list = document.getElementById('zone-list');
+  if (zones.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--texte-dim);font-size:13px;padding:2rem 0;font-family:\'DM Mono\',monospace;">Ajoute des surfaces depuis les onglets ↑</div>';
+    document.getElementById('cumul-val').innerHTML = '0<span> m²</span>';
+    document.getElementById('cumul-detail').textContent = '';
+    return;
+  }
+
+  list.innerHTML = zones.map(z => `
+    <div class="zone-item">
+      <div class="z-info">
+        <div class="z-name">${z.name}</div>
+        <div class="z-type" style="cursor:pointer" onclick="toggleNeg(${z.id})">
+          ${z.negative ? '⊖ soustrait' : '⊕ ajouté'} · cliquer pour changer
+        </div>
+      </div>
+      <div class="z-val ${z.negative?'neg':''}">${z.negative?'–':''}${z.area.toFixed(2)} m²</div>
+      <button class="z-del" onclick="removeZone(${z.id})">×</button>
+    </div>
+  `).join('');
+
+  let total = 0;
+  const lines = [];
+  zones.forEach((z, i) => {
+    const sign = z.negative ? -1 : 1;
+    total += sign * z.area;
+    const prefix = z.negative ? '– ' : (i > 0 ? '+ ' : '');
+    lines.push(`${prefix}${z.name} : ${z.area.toFixed(2)} m²`);
+  });
+
+  const t = Math.round(total * 100) / 100;
+  document.getElementById('cumul-val').innerHTML = t.toFixed(2) + '<span> m²</span>';
+  document.getElementById('cumul-detail').textContent = lines.join('  ·  ');
+}
+
+function clearMulti() {
+  if (!confirm('Effacer toutes les zones ?')) return;
+  zones = []; zoneCounter = 0;
+  document.getElementById('chantier-nom').value = '';
+  renderZones(); save();
+}
+
+function copyRecap() {
+  const nom = document.getElementById('chantier-nom').value || 'Chantier';
+  const date = new Date().toLocaleDateString('fr-FR');
+  let txt = `📐 ${nom}\n${date}\n${'─'.repeat(28)}\n`;
+  let total = 0;
+  zones.forEach((z, i) => {
+    const sign = z.negative ? -1 : 1;
+    total += sign * z.area;
+    const prefix = z.negative ? '– ' : (i > 0 ? '+ ' : '');
+    txt += `\n${prefix}${z.name} : ${z.area.toFixed(2)} m²`;
+  });
+  const t = Math.round(total*100)/100;
+  txt += `\n\n${'─'.repeat(28)}\nTOTAL : ${t.toFixed(2)} m²`;
+  navigator.clipboard.writeText(txt).then(() => {
+    const c = document.getElementById('copy-confirm');
+    c.classList.add('show');
+    setTimeout(() => c.classList.remove('show'), 3000);
+  }).catch(() => prompt('Copie :', txt));
+}
+
+// ─── SAVE / LOAD ──────────────────────────────────────────
+function save() {
+  try {
+    localStorage.setItem(STORAGE, JSON.stringify({
+      zones, zoneCounter,
+      nom: document.getElementById('chantier-nom')?.value || '',
+      trap: { B: document.getElementById('trap-B')?.value, b: document.getElementById('trap-b')?.value, h: document.getElementById('trap-h')?.value },
+      heron: { a: document.getElementById('h-a')?.value, b: document.getElementById('h-b')?.value, c: document.getElementById('h-c')?.value },
+      cercle: { r: document.getElementById('c-r')?.value, type: document.getElementById('c-type')?.value }
+    }));
+  } catch(e) {}
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    zones = d.zones || [];
+    zoneCounter = d.zoneCounter || 0;
+    if (d.nom) document.getElementById('chantier-nom').value = d.nom;
+    if (d.trap) {
+      document.getElementById('trap-B').value = d.trap.B || '';
+      document.getElementById('trap-b').value = d.trap.b || '';
+      document.getElementById('trap-h').value = d.trap.h || '';
+      if (d.trap.B || d.trap.b || d.trap.h) calcTrap();
+    }
+    if (d.heron) {
+      document.getElementById('h-a').value = d.heron.a || '';
+      document.getElementById('h-b').value = d.heron.b || '';
+      document.getElementById('h-c').value = d.heron.c || '';
+      if (d.heron.a || d.heron.b || d.heron.c) calcHeron();
+    }
+    if (d.cercle) {
+      document.getElementById('c-r').value = d.cercle.r || '';
+      document.getElementById('c-type').value = d.cercle.type || 'full';
+      if (d.cercle.r) calcCercle();
+    }
+    renderZones();
+  } catch(e) {}
+}
+
+document.getElementById('chantier-nom').addEventListener('input', save);
+loadSaved();
+</script>
+</body>
+</html>
